@@ -1,0 +1,44 @@
+{
+ "anchor": 0.5,
+ "author": null,
+ "createdAt": "2026-10-22T17:55:42.000Z",
+ "credit": "Power Tools Hub",
+ "description": "Fast handheld camera whip: A ramps hard into a pure sideways motion streak, the cut hides at peak speed as B sweeps in from the other side, then B brakes hard, overshoots a touch and settles like a real operator.",
+ "duration": 0.42,
+ "name": "whip-pan",
+ "params": [
+  {
+   "label": "Direction (deg, 0 = left, 90 = up)",
+   "max": 360,
+   "min": 0,
+   "name": "angle",
+   "value": 0
+  },
+  {
+   "label": "Motion blur",
+   "max": 1.6,
+   "min": 0.7,
+   "name": "blur",
+   "value": 1
+  },
+  {
+   "label": "Camera tilt (deg)",
+   "max": 10,
+   "min": 0,
+   "name": "tilt",
+   "value": 4
+  },
+  {
+   "label": "Landing overshoot",
+   "max": 1.5,
+   "min": 0,
+   "name": "settle",
+   "value": 1
+  }
+ ],
+ "shader": "// Whip Pan - handheld camera whip with the cut hidden at peak speed.\n// One continuous virtual camera: A ramps up hard (quartic ease-in) into a pure streak; the cut sits inside the\n// shutter of the fastest frame, where B sweeps in from its own side already streaking; B then brakes hard\n// (quartic ease-out), overshoots rest a little and eases back like an operator catching the frame.\n// Every blur tap is a real moment of the camera path (offset + roll + push-in + arc + depth parallax), taps are\n// averaged in linear light so highlights streak like a real exposure, the A -> B switch inside the shutter is a\n// short soft fade (no sharp streak ends), taps are packed toward the middle of the shutter (importance sampled)\n// and the comb is shifted per pixel with interleaved gradient noise: no ghost copies, only a very fine grain.\n// params: angle (deg, 0 = picture flies to the left, 90 = up), blur (shutter / streak length),\n//         tilt (deg of camera roll at the peak), settle (landing overshoot, 0 = none)\n\nconst int WP_TAPS = 36;            // + at most 11 dual-sampled taps in the soft switch = 47 fetches worst case\nconst float WP_CUT = 0.5;\nconst float WP_PI = 3.14159265;\nconst float WP_SOFT = 5.5;         // half-width of the in-shutter A -> B fade, in taps\nconst float WP_WARP = 0.3;         // tap packing toward the shutter middle (weights are corrected for it)\nconst float WP_FOLD = 0.06;        // depth (uv) at which samples that leave the frame stop and smear\n\n// interleaved gradient noise: well spread per-pixel comb offsets (the grain sits at the finest spatial frequency)\nfloat wpIgn(vec2 p) {\n    return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715))));\n}\n\n// soft fold for samples that leave the frame: right at the edge it is the plain mirror (seamless for the small\n// overshoots of roll / settle); further out the mirrored point slows down and stops ~WP_FOLD inside the frame, so\n// the content entering beyond the edge is a smear of the edge band instead of a mirrored copy running backwards\n// (no ghost pillar / double band on the trailing side)\nvec2 wpFold(vec2 s) {\n    vec2 hi = max(s - 1.0, 0.0);\n    vec2 lo = max(-s, 0.0);\n    return clamp(s, 0.0, 1.0) - WP_FOLD * (1.0 - exp(-hi / WP_FOLD)) + WP_FOLD * (1.0 - exp(-lo / WP_FOLD));\n}\n\n// shutter time 0..1 of comb position g 0..1 (denser in the middle, where the shutter weight is high)\nfloat wpWarp(float g) {\n    return g + WP_WARP * sin(2.0 * WP_PI * g) / (2.0 * WP_PI);\n}\n\n// camera travel 0 -> 1 (A owns 0..0.5, B owns 0.5..1): quartic ease-in into the cut, quartic ease-out after it,\n// velocity peaks at the cut; after the cut B overshoots rest by ~2.4% of the frame (settle = 1) and eases back,\n// arriving with zero velocity and zero acceleration, so the clip after the transition continues without a bump\nfloat wpTravel(float t) {\n    t = clamp(t, 0.0, 1.0);\n    if (t < WP_CUT) {\n        float u = t / WP_CUT;\n        return 0.5 * u * u * u * u;\n    }\n    float s = (t - WP_CUT) / (1.0 - WP_CUT);        // 0 at the cut .. 1 at rest\n    float r = 1.0 - s;\n    float sr = s * r;\n    return 1.0 - 0.5 * r * r * r * r + 3.0 * settle * sr * sr * sr;\n}\n\nvec4 transition(vec2 uv) {\n    // at progress 0 / 1 the shutter is closed (W = 0) and the camera is at rest, so this is exactly A / B\n    float a = radians(angle);\n    vec2 dir = vec2(-cos(a), sin(a));               // where the picture travels\n    vec2 nrm = vec2(-dir.y, dir.x);\n    vec2 asp = vec2(ratio, 1.0);\n    float ext = abs(dir.x) * ratio + abs(dir.y);    // frame size along the move (height units)\n    float extN = abs(nrm.x) * ratio + abs(nrm.y);\n    vec2 P = (uv - 0.5) * asp;\n    float along = dot(P, dir) / ext;                // -0.5 (side B enters from) .. 0.5 (side A leaves to)\n\n    // shutter window in progress units, opens up only once the camera moves; around the cut it never drops below\n    // a full streak (a low blur setting stays crisper in the ramps but the cut is still hidden) and it is 15%\n    // shorter right at the peak, which keeps the fastest frame's grain level with its neighbours\n    float dCut = abs(progress - WP_CUT);\n    float env = smoothstep(0.0, 0.12, progress) * smoothstep(0.0, 0.12, 1.0 - progress);\n    float nearCut = 1.0 - smoothstep(0.02, 0.11, dCut);\n    float W = 0.085 * env * mix(blur, max(blur, 1.0), nearCut) * (0.85 + 0.15 * smoothstep(0.0, 0.09, dCut));\n    // inside the shutter of the cut frames B sweeps in from its own side\n    float cutAt = WP_CUT + 1.8 * W * along;\n    // where the cut falls inside this pixel's shutter, as a comb position in tap units (fractional -> no banding)\n    float fc = clamp((cutAt - (progress - W)) / max(2.0 * W, 1e-6), -1.0, 2.0);\n    float gc = fc;\n    for (int n = 0; n < 3; n++) {\n        gc -= (wpWarp(gc) - fc) / (1.0 + WP_WARP * cos(2.0 * WP_PI * gc));\n    }\n    float xc = gc * float(WP_TAPS);\n    // per-pixel shift of the whole comb, re-rolled every frame -> fine grain instead of ghost copies\n    float jit = wpIgn(floor(uv * resolution) + 61.0 * floor(time * 60.0));\n    float rollMax = radians(tilt);\n    float travelLen = 0.85 * ext;\n\n    vec4 acc = vec4(0.0);\n    float wsum = 0.0;\n    for (int i = 0; i < WP_TAPS; i++) {\n        float fk = float(i) + jit;\n        float g = fk / float(WP_TAPS);\n        float fj = wpWarp(g);                                // sample time inside the shutter, 0..1\n        float tj = progress + W * (2.0 * fj - 1.0);\n        float shA = 1.0 - smoothstep(xc - WP_SOFT, xc + WP_SOFT, fk);   // share of A in this tap\n\n        // handheld extras follow each clip's own closeness to the cut and keep growing through it (no cusp,\n        // so the cut frame is never crisper than its neighbours); roll builds and settles gently (^2), the\n        // vertical arc and push-in only kick in near the peak (^4), so the ramps read as a clean sideways whip\n        float uu = mix(min(tj / WP_CUT, 1.35), min((1.0 - tj) / (1.0 - WP_CUT), 1.35), 1.0 - shA);\n        float bump = uu * uu;\n        float bumpV = bump * bump;\n        float tr = wpTravel(tj);\n        float roll = rollMax * bump;\n        float par = 1.0 - 0.10 * bump * P.y;                 // lower (closer) part travels a bit further\n        vec2 q = P / (1.0 + 0.03 * bumpV);                   // slight push-in at the peak\n        float cr = cos(roll);\n        float sr = sin(roll);\n        q = vec2(cr * q.x - sr * q.y, sr * q.x + cr * q.y);\n        q -= nrm * (0.015 * extN * bumpV);                   // slight arc across the move\n        vec2 stepv = dir * (travelLen * par) / asp;\n        vec2 sA = q / asp + 0.5 - stepv * tr;                // A: travel 0 -> 0.5\n        vec2 sB = sA + stepv;                                // B: travel - 1 = -0.5 -> 0 (+ settle)\n\n        float sw = sin(WP_PI * fj);\n        // smooth shutter (no box edges, no hard streak ends), divided by the tap density of the warp\n        float w = (0.06 + sw * sw) * (1.0 + WP_WARP * cos(2.0 * WP_PI * g));\n        vec4 c;\n        if (shA >= 1.0) {\n            c = getA(wpFold(sA));\n            c.rgb *= c.rgb;\n        } else if (shA <= 0.0) {\n            c = getB(wpFold(sB));\n            c.rgb *= c.rgb;\n        } else {\n            vec4 ca = getA(wpFold(sA));\n            vec4 cb = getB(wpFold(sB));\n            c = mix(vec4(cb.rgb * cb.rgb, cb.a), vec4(ca.rgb * ca.rgb, ca.a), shA);\n        }\n        acc += c * w;                                        // linear-light accumulation (gamma 2)\n        wsum += w;\n    }\n    acc /= wsum;\n    return vec4(sqrt(acc.rgb), acc.a);\n}\n",
+ "title": "Whip Pan",
+ "updatedAt": "2026-10-22T17:55:42.000Z",
+ "updatedBy": null,
+ "version": 1
+}

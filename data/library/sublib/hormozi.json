@@ -1,0 +1,74 @@
+{
+ "author": null,
+ "createdAt": "2026-10-21T09:36:25.000Z",
+ "credit": "editor",
+ "description": "Caps with a thick black outline; spoken words fill with yellow as they are said. A punchy style for hooks.",
+ "engine": "editor",
+ "name": "hormozi",
+ "place": {
+  "boxH": 300,
+  "boxW": 960,
+  "py": 1300
+ },
+ "st": {
+  "align": "center",
+  "bg": {
+   "color": "#ffffff",
+   "linkPad": false,
+   "mode": "lines",
+   "on": false,
+   "op": 100,
+   "pad": 16,
+   "padX": 22,
+   "padY": 8,
+   "radius": 14,
+   "shadow": {
+    "angle": 135,
+    "blur": 18,
+    "color": "#000000",
+    "dist": 8,
+    "on": false,
+    "op": 45
+   },
+   "target": "caption"
+  },
+  "bold": false,
+  "caps": true,
+  "fill": {
+   "color": "#ffffff",
+   "on": true
+  },
+  "font": "Montserrat",
+  "italic": false,
+  "kar": {
+   "color": "#ffe14a",
+   "mode": "fill",
+   "on": true,
+   "scale": 100
+  },
+  "leading": 0,
+  "shadow": {
+   "angle": 135,
+   "blur": 10,
+   "color": "#000000",
+   "dist": 6,
+   "on": false,
+   "op": 60
+  },
+  "size": 66,
+  "stroke": {
+   "color": "#000000",
+   "join": "round",
+   "on": true,
+   "width": 9
+  },
+  "tracking": 0,
+  "underline": false,
+  "valign": "middle",
+  "weight": 900
+ },
+ "title": "Hormozi",
+ "updatedAt": "2026-10-21T09:36:25.000Z",
+ "updatedBy": null,
+ "version": 1
+}

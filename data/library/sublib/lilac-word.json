@@ -1,0 +1,74 @@
+{
+ "author": null,
+ "createdAt": "2026-10-21T09:36:25.000Z",
+ "credit": "word_captions.py",
+ "description": "One word at a time in the middle of the frame: lilac Inter Bold with a heavy outline and a soft shadow.",
+ "engine": "word",
+ "name": "lilac-word",
+ "place": {
+  "boxH": 300,
+  "boxW": 1000,
+  "py": 925
+ },
+ "st": {
+  "align": "center",
+  "bg": {
+   "color": "#ffffff",
+   "linkPad": false,
+   "mode": "lines",
+   "on": false,
+   "op": 100,
+   "pad": 16,
+   "padX": 22,
+   "padY": 8,
+   "radius": 14,
+   "shadow": {
+    "angle": 135,
+    "blur": 18,
+    "color": "#000000",
+    "dist": 8,
+    "on": false,
+    "op": 45
+   },
+   "target": "caption"
+  },
+  "bold": false,
+  "caps": false,
+  "fill": {
+   "color": "#d6adfb",
+   "on": true
+  },
+  "font": "Inter",
+  "italic": false,
+  "kar": {
+   "color": "#8d8a2e",
+   "mode": "fill",
+   "on": false,
+   "scale": 100
+  },
+  "leading": 0,
+  "shadow": {
+   "angle": 56,
+   "blur": 12,
+   "color": "#000000",
+   "dist": 7,
+   "on": true,
+   "op": 59
+  },
+  "size": 115,
+  "stroke": {
+   "color": "#000000",
+   "join": "round",
+   "on": true,
+   "width": 9
+  },
+  "tracking": 0,
+  "underline": false,
+  "valign": "middle",
+  "weight": 700
+ },
+ "title": "Lilac word",
+ "updatedAt": "2026-10-21T11:19:56.000Z",
+ "updatedBy": null,
+ "version": 1
+}

@@ -1,0 +1,37 @@
+{
+ "anchor": 0.55,
+ "author": null,
+ "createdAt": "2026-10-22T17:55:42.000Z",
+ "credit": "Power Tools Hub",
+ "description": "A rushes into the centre with an accelerating zoom and radial blur that peaks at the hidden cut; B starts deep, glides out over three frames and settles with a soft overshoot. Straight lines stay straight.",
+ "duration": 0.36,
+ "name": "zoom-punch",
+ "params": [
+  {
+   "label": "Punch depth",
+   "max": 2,
+   "min": 0.4,
+   "name": "zoom",
+   "value": 1
+  },
+  {
+   "label": "Radial blur",
+   "max": 2,
+   "min": 0.3,
+   "name": "blur",
+   "value": 1
+  },
+  {
+   "label": "Bounce",
+   "max": 1,
+   "min": 0,
+   "name": "bounce",
+   "value": 0.5
+  }
+ ],
+ "shader": "// Zoom Punch - punch-in hook transition.\n// A accelerates into the centre (power-2.5 ease-in in log-zoom space); B starts deep and glides out on a\n// normalized exponential (expo-out) with one soft overshoot lobe past rest. Motion blur is integrated over a\n// virtual shutter (jittered taps along the real zoom path), so the blur grows with speed, peaks at the cut and\n// the cut itself happens between two fully streaked frames.\n// Every zoom is a UNIFORM scale about the centre (straight lines stay straight); the overshoot (< 1x) samples\n// at most ~1.5 % mirror-wrapped border per side, softened by the remaining radial smear.\n// Extras at the peak: short barrel bulge (pinned at the corners, only on the streaked frames), faint spectral\n// fringe along the streaks, small exposure lift with a vignette.\n\nconst float ZP_CUT = 0.55;     // MUST equal the preset \"anchor\" (zoom-punch.json) - edit both together\nconst int ZP_TAPS = 32;\nconst float ZP_PI = 3.14159265;\n\n// Hoskins hash12 on the integer pixel: unstructured per-pixel shutter jitter (static, so it never boils)\nfloat zpHash(vec2 uv) {\n    vec2 px = floor(uv * resolution);\n    vec3 p3 = fract(vec3(px.xyx) * 0.1031);\n    p3 += dot(p3, p3.yzx + 33.33);\n    return fract((p3.x + p3.y) * p3.z);\n}\n\nfloat zpPeak(float t, float w) {\n    float x = (t - ZP_CUT) / w;\n    return exp(-x * x);\n}\n\n// log of the zoom factor at progress t: > 0 zoomed in, < 0 overshoot past rest (zoomed out)\nfloat zpLogZoom(float t) {\n    float depth = log(1.0 + 1.25 * zoom);\n    if (t < ZP_CUT) {\n        float a = clamp(t / ZP_CUT, 0.0, 1.0);\n        return depth * a * a * sqrt(a);\n    }\n    float s = clamp((t - ZP_CUT) / (1.0 - ZP_CUT), 0.0, 1.0);\n    // normalized expo-out: exactly depth*1.1 at s = 0 and exactly 0 at s = 1 (30 fps @ 0.36 s: 1.66x, 1.18x, 1.05x, ~1x)\n    float k = exp(-5.0);\n    float settle = depth * 1.1 * (exp(-5.0 * s) - k) / (1.0 - k);\n    // one soft overshoot lobe past rest that starts and lands with zero speed\n    float sl = sin(ZP_PI * clamp((s - 0.3) / 0.7, 0.0, 1.0));\n    return settle - 0.06 * bounce * sl * sl;\n}\n\nvec2 zpMap(vec2 uv, float t) {\n    vec2 d = uv - 0.5;\n    // lens bulge: barrel magnification of the centre, pinned at the corners; lives only on the streaked frames\n    // around the hit (a touch longer on A's side, gone by B's medium-blur frame)\n    vec2 q = d * vec2(ratio, 1.0);\n    float r2 = dot(q, q) / (0.25 * (ratio * ratio + 1.0));\n    float bw = t < ZP_CUT ? 0.10 : 0.075;\n    d *= 1.0 - 0.22 * zpPeak(t, bw) * (1.0 - r2);\n    // uniform zoom (also for the overshoot: mirror-wrapped edges are allowed and the band is tiny)\n    d *= exp(-zpLogZoom(t));\n    return 0.5 + d;\n}\n\nvec4 transition(vec2 uv) {\n    float p = progress;\n    float win = clamp(p * 14.0, 0.0, 1.0) * clamp((1.0 - p) * 14.0, 0.0, 1.0);\n    float sh = 0.075 * blur * win;\n    // shorter shutter once B has glided out: the overshoot frames keep a light radial smear (hides the mirror\n    // seam), the landing frame itself has zero blur\n    sh *= mix(1.0, 0.5, smoothstep(0.2, 0.45, (p - ZP_CUT) / (1.0 - ZP_CUT)));\n    float j = zpHash(uv);\n    // the shutter never straddles the cut: near it the window slides to stay on one side, so the hard cut\n    // lands between two fully streaked frames (no double exposure, no sharp frame at the hit)\n    bool sideB = p >= ZP_CUT;\n    float mid = sideB ? max(p, ZP_CUT + 0.5 * sh) : min(p, ZP_CUT - 0.5 * sh - 0.0001);\n    vec3 acc = vec3(0.0);\n    vec3 wsum = vec3(0.0);\n    for (int i = 0; i < ZP_TAPS; i++) {\n        float f = (float(i) + j) / float(ZP_TAPS);\n        float t = clamp(mid + sh * (f - 0.5), 0.0, 1.0);\n        vec2 st = zpMap(uv, t);\n        vec4 c = sideB ? getB(st) : getA(st);\n        float k = 0.35 * (1.0 - 2.0 * f);\n        vec3 w = vec3(1.0 + k, 1.0, 1.0 - k);\n        acc += c.rgb * w;\n        wsum += w;\n    }\n    vec3 col = acc / wsum;\n    float pk = zpPeak(p, 0.09);\n    vec2 q = (uv - 0.5) * vec2(ratio, 1.0);\n    float r2 = dot(q, q) / (0.25 * (ratio * ratio + 1.0));\n    col *= (1.0 + 0.10 * pk) * (1.0 - 0.18 * pk * smoothstep(0.25, 1.0, r2));\n    return vec4(col, 1.0);\n}\n",
+ "title": "Zoom Punch",
+ "updatedAt": "2026-10-22T17:55:42.000Z",
+ "updatedBy": null,
+ "version": 1
+}

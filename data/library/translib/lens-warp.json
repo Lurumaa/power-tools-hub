@@ -1,0 +1,44 @@
+{
+ "anchor": 0.5,
+ "author": null,
+ "createdAt": "2026-10-22T17:55:42.000Z",
+ "credit": "Power Tools Hub",
+ "description": "Push through a lens: A bulges and accelerates into the centre with growing edge chroma and radial smear, the cut hides in the fastest frames, B lands minified inside the same barrel and keeps pushing in, decelerating to flat and sharp.",
+ "duration": 0.5,
+ "name": "lens-warp",
+ "params": [
+  {
+   "label": "Warp",
+   "max": 2,
+   "min": 0.4,
+   "name": "warp",
+   "value": 1.2
+  },
+  {
+   "label": "Zoom",
+   "max": 2,
+   "min": 0.6,
+   "name": "zoom",
+   "value": 1.2
+  },
+  {
+   "label": "Chroma",
+   "max": 2,
+   "min": 0,
+   "name": "chroma",
+   "value": 1
+  },
+  {
+   "label": "Blur",
+   "max": 1.6,
+   "min": 0.6,
+   "name": "blur",
+   "value": 1
+  }
+ ],
+ "shader": "// Lens Warp - push through a lens.\n// A bulges (barrel, corners pinned) while the camera accelerates into the centre; the hard cut hides inside\n// the fastest, most smeared frames; B lands minified inside the same barrel, so the push carries on, and\n// decelerates to flat and sharp. Centre magnification only ever rises, on both sides of the cut.\n// 48-tap temporal motion blur: every tap re-evaluates the lens at its own white-noise-jittered, Hann-weighted\n// shutter time; each side keeps its own shutter (extrapolated past the cut on its own lens), so no frame is\n// ever a double exposure of A and B.\n// Chromatic aberration = spectral shutter tilt (red weighted to the start of every streak, blue to the end):\n// it exists only where the lens moves, grows toward the edges, never makes green/purple bands.\n// While B is minified, its mirrored surround gets extra radial smear that grows with the distance past the\n// frame edge, so the landing reads as zoom streaks, never as a reflected copy of the picture.\n\nconst float LW_CUT = 0.5;\nconst int LW_TAPS = 48;\n\nuint lwHash(uint v) {                       // PCG hash: white noise, no diagonal hatching\n    uint s = v * 747796405u + 2891336453u;\n    uint w = ((s >> ((s >> 28u) + 4u)) ^ s) * 277803737u;\n    return (w >> 22u) ^ w;\n}\nfloat lwU01(uint v) { return float(v >> 8u) * (1.0 / 16777216.0); }\n\n// A: t 0 (start) .. 1 (cut). x = source scale at rn2 (<1 magnifies), y = lens envelope, z = smear/defocus envelope\nvec3 lwLensA(float t, float rn2) {\n    float t2 = t * t;\n    float t4 = t2 * t2;\n    float ew = t2 * t * sqrt(t);                         // bulge: late, strong ease-in\n    float k = warp * ew;\n    float s = (1.0 + k * rn2) / ((1.0 + k) * (1.0 + 0.6 * zoom * t4));\n    return vec3(s, ew, t4);\n}\n\n// B: t 1 (cut) .. 0 (end). Centre-normalised barrel: the bulge can never cancel the push at the centre\nvec3 lwLensB(float t, float rn2) {\n    float t2 = t * t;\n    float t4 = t2 * t2;\n    float lb = 0.2 + 0.15 * warp + 0.18 * zoom;          // landing minification (log), matched to A's speed\n    float sb = exp(lb * t4 * t2);                        // ease-out: fastest at the cut\n    float ew = t2 * t;\n    float b = 1.0 + 0.4 * warp * ew * rn2;\n    float cap = max(2.4 / sb, 1.0);                      // corners never sample beyond 2.4x\n    float hh = clamp(0.5 + 0.5 * (cap - b) / 0.12, 0.0, 1.0);\n    b = mix(cap, b, hh) - 0.12 * hh * (1.0 - hh);\n    return vec3(sb * b, ew, t4);\n}\n\nvec4 transition(vec2 uv) {\n    if (progress <= 0.0) return getA(uv);\n    if (progress >= 1.0) return getB(uv);\n\n    vec2 asp = vec2(ratio, 1.0);\n    vec2 hb = 0.5 * asp;                                          // frame half size in lens space\n    vec2 d = (uv - 0.5) * asp;\n    float rc2 = 0.25 * (ratio * ratio + 1.0);\n    float rn2 = dot(d, d) / rc2;                                  // 0 centre .. 1 corners\n\n    uvec2 ip = uvec2(gl_FragCoord.xy);\n    uint seed = lwHash(ip.x + lwHash(ip.y + lwHash(uint(time * 60.0 + 0.5))));\n    float n1 = lwU01(seed);                                       // shutter jitter (1D, stratified)\n\n    float shutter = 0.05 * blur;                                  // ~250 deg at 30 fps\n    bool isB = progress >= LW_CUT;\n    // each side's shutter is centred on the frame time; near the cut it runs on that side's own lens\n    // extrapolated past the cut (A a little further in, B a little more minified), never on the other clip\n    float pc = progress;\n    float qlo = isB ? LW_CUT - 0.5 * shutter : 0.0;\n    float qhi = isB ? 1.0 : LW_CUT + 0.5 * shutter;\n\n    float tc = isB ? (1.0 - pc) / (1.0 - LW_CUT) : pc / LW_CUT;\n    vec3 lc = isB ? lwLensB(tc, rn2) : lwLensA(tc, rn2);\n    // how far B's minified landing reaches past its frame edge (0 inside)\n    vec2 sp = abs(d * lc.x) / hb;\n    float oob = isB ? max(sp.x, sp.y) - 1.0 : -1.0;\n    // radial lens smear riding the shutter axis (same direction as the push)\n    float smear = blur * ((isB ? 0.1 : 0.16) * lc.z + 0.05 * lc.y * lc.y * rn2) + 0.8 * smoothstep(-0.06 * tc, 0.25, oob);\n    // streak length (px) over this frame's shutter, from the lens at both shutter ends\n    float q0 = clamp(pc - 0.5 * shutter, qlo, qhi);\n    float q1 = clamp(pc + 0.5 * shutter, qlo, qhi);\n    float s0 = isB ? lwLensB((1.0 - q0) / (1.0 - LW_CUT), rn2).x : lwLensA(q0 / LW_CUT, rn2).x;\n    float s1 = isB ? lwLensB((1.0 - q1) / (1.0 - LW_CUT), rn2).x : lwLensA(q1 / LW_CUT, rn2).x;\n    float streak = (abs(log(s1 / s0)) + smear) * length(d) * resolution.y;\n    // small screen-space defocus where the zoom leaves the image still (the centre), so the frames at the cut\n    // are soft everywhere; faded out along streaks, where a fixed disc would print ghost contours\n    float dofR = 0.0065 * lc.z * (0.5 + 0.5 * blur) / (1.0 + streak * streak / 36.0);\n    // spectral tilt: lateral colour split along the streaks (A's streaks are shorter, so it ramps in earlier)\n    float tA = min(tc, 1.0);\n    float sig = chroma * rn2 * (isB ? 2.2 * lc.y : 4.5 * tA * tA * sqrt(tA));\n    sig = 2.0 * tanh(0.5 * sig);                                  // soft cap: a split, never a 3-band rainbow\n\n    vec3 acc = vec3(0.0);\n    vec3 wsum = vec3(0.0);\n    for (int j = 0; j < LW_TAPS; j++) {\n        float fj = float(j);\n        float u = (fj + n1) / float(LW_TAPS);                     // stratified shutter position 0..1\n        float q = clamp(pc + (u - 0.5) * shutter, qlo, qhi);\n        float tq = isB ? (1.0 - q) / (1.0 - LW_CUT) : q / LW_CUT;\n        vec3 l = isB ? lwLensB(tq, rn2) : lwLensA(tq, rn2);\n        float s = l.x * (1.0 - (u - 0.5) * smear);\n        // small fixed defocus disc: 24 Vogel points (decorrelated from the shutter), each used twice as an\n        // antithetic pair; at <= 4 px it is noise-free and too dense to show ghost contours\n        float hj = floor(fj * 0.5);\n        float kd = mod(hj * 7.0, 24.0);\n        float rr = sqrt((kd + 0.5) / 24.0) * (fj - 2.0 * hj > 0.5 ? -dofR : dofR);\n        float ang = kd * 2.3999632;\n        vec2 suv = (d + vec2(cos(ang), sin(ang)) * rr) * s / asp + 0.5;\n        vec3 c = isB ? getB(suv).rgb : getA(suv).rgb;\n        float hs = sin(3.1415927 * u);\n        float ex = sig * (1.0 - 2.0 * u);\n        vec3 wv = (0.02 + hs * hs) * vec3(exp(ex), 1.0, exp(-ex)); // Hann shutter, red early / blue late\n        acc += c * wv;\n        wsum += wv;\n    }\n    vec3 col = acc / wsum;\n\n    // lens vignette, only while the lens is active\n    float tn = isB ? (1.0 - progress) / (1.0 - LW_CUT) : progress / LW_CUT;\n    col *= 1.0 - 0.45 * tn * tn * smoothstep(0.25, 1.0, rn2);\n    return vec4(clamp(col, 0.0, 1.0), 1.0);\n}\n",
+ "title": "Lens Warp",
+ "updatedAt": "2026-10-22T17:55:42.000Z",
+ "updatedBy": null,
+ "version": 1
+}

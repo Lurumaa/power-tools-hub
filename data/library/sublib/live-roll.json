@@ -1,0 +1,79 @@
+{
+ "author": null,
+ "createdAt": "2026-10-21T11:19:56.000Z",
+ "credit": "Power Tools Hub",
+ "description": "Live-caption flow: words are written in as they are said and finished lines roll up smoothly, the previous line dimmed above. Nothing swaps in blocks; it reads like a real transcript.",
+ "engine": "motion",
+ "fx": {
+  "dim": 45,
+  "kind": "roll",
+  "lines": 2
+ },
+ "name": "live-roll",
+ "place": {
+  "boxH": 360,
+  "boxW": 860,
+  "py": 1300
+ },
+ "st": {
+  "align": "left",
+  "bg": {
+   "color": "#ffffff",
+   "linkPad": false,
+   "mode": "lines",
+   "on": false,
+   "op": 100,
+   "pad": 16,
+   "padX": 22,
+   "padY": 8,
+   "radius": 14,
+   "shadow": {
+    "angle": 135,
+    "blur": 18,
+    "color": "#000000",
+    "dist": 8,
+    "on": false,
+    "op": 45
+   },
+   "target": "caption"
+  },
+  "bold": false,
+  "caps": false,
+  "fill": {
+   "color": "#ffffff",
+   "on": true
+  },
+  "font": "Manrope",
+  "italic": false,
+  "kar": {
+   "color": "#8d8a2e",
+   "mode": "fill",
+   "on": false,
+   "scale": 100
+  },
+  "leading": 0,
+  "shadow": {
+   "angle": 90,
+   "blur": 4,
+   "color": "#000000",
+   "dist": 5,
+   "on": false,
+   "op": 60
+  },
+  "size": 54,
+  "stroke": {
+   "color": "#000000",
+   "join": "round",
+   "on": true,
+   "width": 6
+  },
+  "tracking": 0,
+  "underline": false,
+  "valign": "middle",
+  "weight": 800
+ },
+ "title": "Live Roll",
+ "updatedAt": "2026-10-23T10:01:09.000Z",
+ "updatedBy": null,
+ "version": 5
+}

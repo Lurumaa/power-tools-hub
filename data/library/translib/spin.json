@@ -1,0 +1,44 @@
+{
+ "anchor": 0.5,
+ "author": null,
+ "createdAt": "2026-10-22T17:55:42.000Z",
+ "credit": "Power Tools Hub",
+ "description": "Rotational whip: A rolls up around the centre with a comet-shaped angular blur and a visible push-in, the cut is buried in the peak swirl (hard in the centre, blended at the rim), B keeps turning the same way, eases out of the push and settles upright.",
+ "duration": 0.48,
+ "name": "spin",
+ "params": [
+  {
+   "label": "Rotation (deg)",
+   "max": 540,
+   "min": 180,
+   "name": "turns",
+   "value": 360
+  },
+  {
+   "label": "Angular blur",
+   "max": 1.3,
+   "min": 0.8,
+   "name": "blur",
+   "value": 1
+  },
+  {
+   "label": "Push-in",
+   "max": 0.35,
+   "min": 0.06,
+   "name": "zoom",
+   "value": 0.22
+  },
+  {
+   "label": "Direction (+1 / -1)",
+   "max": 1,
+   "min": -1,
+   "name": "dir",
+   "value": 1
+  }
+ ],
+ "shader": "// Spin - rotational whip. A rolls up around the centre (ease-in) while pushing in, the cut sits at the peak\n// angular speed (progress 0.5), B carries on in the same direction, eases out of the push and settles upright.\n// Motion blur = a virtual shutter in time: every tap re-evaluates angle + zoom at its own moment, so the smear\n// follows the real angular speed (a fixed ~180 deg shutter: peak arc ~50 deg * blur, growing only gently with\n// turns). Trailing comet weights put the bright head of every streak on the leading side, so the turn direction\n// reads even in the smear; a small radial rush at the cut turns rings into a slight spiral.\n// The cut: the still centre cuts hard (no double exposure where the image is sharp), toward the rim B takes over\n// the late part of the shutter across ~3 frames, so the swap is buried in the swirl, the luma step is soft and\n// odd / even frame counts behave the same. Mirror-filled corners on the slow, tilted frames get a longer shutter\n// so reflections never read as doubled objects.\n\nconst int SPIN_TAPS = 47;          // + 1 extra fetch on the one tap split between A and B = 48 taps max\nconst float SPIN_N = 47.0;\nconst float SPIN_PI = 3.14159265;\nconst float SPIN_K = 3.5;          // speed-ramp exponent (higher = longer calm start, harder whip)\nconst float SPIN_ARC = 50.0;       // peak blur arc in degrees at blur = 1, turns = 360 (scales by turns^0.3)\nconst float SPIN_RUSH = 0.12;      // radial smear at the cut (spiral feel)\nconst float SPIN_EDGE = 3.5;       // extra smear where the frame is mirror-filled on the slow, tilted frames\nconst float SPIN_CUTW = 0.2;       // A/B blend window at the rim (progress units)\n\nfloat spinEase(float t) {\n    t = clamp(t, 0.0, 1.0);\n    return t < 0.5 ? 0.5 * pow(max(2.0 * t, 1e-6), SPIN_K)\n                   : 1.0 - 0.5 * pow(max(2.0 - 2.0 * t, 1e-6), SPIN_K);\n}\n\nfloat spinPush(float t) {          // smooth push-in bump, 1.0 at the cut\n    t = clamp(t, 0.0, 1.0);\n    float u = t < 0.5 ? 2.0 * t : 2.0 - 2.0 * t;\n    return u * u * (3.0 - 2.0 * u);\n}\n\nfloat spinSpeed(float t) {          // normalised angular speed, 1.0 at the cut\n    t = clamp(t, 0.0, 1.0);\n    return pow(max(t < 0.5 ? 2.0 * t : 2.0 - 2.0 * t, 1e-6), SPIN_K - 1.0);\n}\n\nfloat spinHash(vec2 p) {\n    vec3 p3 = fract(vec3(p.xyx) * 0.1031);\n    p3 += dot(p3, p3.yzx + 33.33);\n    return fract((p3.x + p3.y) * p3.z);\n}\n\nvec2 spinMap(vec2 uv, float ang, float z) {\n    vec2 d = (uv - 0.5) * vec2(ratio, 1.0);\n    float c = cos(ang);\n    float s = sin(ang);\n    d = vec2(c * d.x + s * d.y, -s * d.x + c * d.y) / z;\n    return d / vec2(ratio, 1.0) + 0.5;\n}\n\nvec4 transition(vec2 uv) {\n    float sgn = dir < 0.0 ? -1.0 : 1.0;\n    float total = radians(turns) * sgn;\n    float win = smoothstep(0.0, 0.2, progress) * (1.0 - smoothstep(0.8, 1.0, progress));\n    float spd = spinSpeed(progress);\n    bool sideB = progress >= 0.5;\n\n    // shutter length in progress units\n    float sh = radians(SPIN_ARC * blur * pow(turns / 360.0, 0.3)) / (SPIN_K * max(abs(total), 0.01)) * win;\n\n    // mirror assist: where this pixel samples beyond the frame on a slow, tilted frame, lengthen the shutter\n    float e0 = spinEase(progress);\n    vec2 s0 = spinMap(uv, sideB ? total * (e0 - 1.0) : total * e0, 1.0 + zoom * spinPush(progress));\n    vec2 ov = max(max(-s0, s0 - 1.0), vec2(0.0)) * vec2(ratio, 1.0);\n    float slow = 1.0 - spd;\n    sh *= 1.0 + SPIN_EDGE * slow * slow * smoothstep(0.0, 0.2, max(ov.x, ov.y));\n\n    float rush = SPIN_RUSH * blur * spd * win;\n\n    // share of B: hard cut in the still centre, soft blend toward the rim (hidden in the smear)\n    float rr = length((uv - 0.5) * vec2(ratio, 1.0));\n    float cw = SPIN_CUTW * smoothstep(0.02, 0.3, rr) + 0.002;\n    float fB = clamp((progress - 0.497) / cw + 0.5, 0.0, 1.0);\n    // B takes the last part of the shutter (a real cut mid-exposure); g maps the wanted B share to a tap share\n    // through the comet weights, so the blend runs symmetric around the cut\n    float g = fB + fB * (1.0 - fB) * (0.68 - 1.84 * fB);\n    float bStart = SPIN_N * (1.0 - g);\n\n    vec2 fc = floor(uv * resolution);\n    // stratified jitter, stepped by the golden ratio per frame (no reseeding shimmer); 0.6 of a stratum hides\n    // stepping while keeping grain low\n    float jit = 0.5 + 0.6 * (fract(spinHash(fc) + 0.618034 * floor(time * 30.0 + 0.5)) - 0.5);\n\n    vec4 acc = vec4(0.0);\n    float wsum = 0.0;\n    for (int i = 0; i < SPIN_TAPS; i++) {\n        float fi = float(i);\n        float uc = (fi + 0.5) / SPIN_N - 0.5;\n        float uj = (fi + jit) / SPIN_N - 0.5;\n        float tj = progress + uj * sh;\n        float w = (0.15 + cos(SPIN_PI * uc)) * (0.6 + 0.8 * (uc + 0.5));   // trailing comet\n        float e = spinEase(tj);\n        float zb = 1.0 + zoom * spinPush(tj);\n        float wB = clamp(fi + 1.0 - bStart, 0.0, 1.0);                     // boundary tap is split A/B\n        if (wB < 1.0) {\n            acc += getA(spinMap(uv, total * e, zb * (1.0 + rush * uj))) * (w * (1.0 - wB));\n        }\n        if (wB > 0.0) {\n            acc += getB(spinMap(uv, total * (e - 1.0), zb * (1.0 - rush * uj))) * (w * wB);\n        }\n        wsum += w;\n    }\n    return acc / wsum;\n}\n",
+ "title": "Spin",
+ "updatedAt": "2026-10-22T17:55:42.000Z",
+ "updatedBy": null,
+ "version": 1
+}

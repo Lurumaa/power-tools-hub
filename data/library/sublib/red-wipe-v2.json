@@ -1,0 +1,79 @@
+{
+ "author": null,
+ "createdAt": "2026-10-23T14:43:46.511Z",
+ "description": "A hook style: heavy condensed caps, and every line is uncovered by a slanted red bar that sweeps across it as its first word is said. Before the next phrase the bars sweep in again and take the old lines away. Loud, fast, the red is only the bar.",
+ "engine": "motion",
+ "fx": {
+  "color": "#4d3681",
+  "exit": true,
+  "kind": "wipe",
+  "slant": 14
+ },
+ "name": "red-wipe-v2",
+ "place": {
+  "boxH": 360,
+  "boxW": 940,
+  "py": 1300
+ },
+ "st": {
+  "align": "center",
+  "bg": {
+   "color": "#ffffff",
+   "linkPad": false,
+   "mode": "lines",
+   "on": false,
+   "op": 100,
+   "pad": 16,
+   "padX": 22,
+   "padY": 8,
+   "radius": 14,
+   "shadow": {
+    "angle": 135,
+    "blur": 18,
+    "color": "#000000",
+    "dist": 8,
+    "on": false,
+    "op": 45
+   },
+   "target": "caption"
+  },
+  "bold": false,
+  "caps": true,
+  "fill": {
+   "color": "#ffffff",
+   "on": true
+  },
+  "font": "Anton",
+  "italic": false,
+  "kar": {
+   "color": "#8d8a2e",
+   "mode": "fill",
+   "on": false,
+   "scale": 100
+  },
+  "leading": 0,
+  "shadow": {
+   "angle": 90,
+   "blur": 4,
+   "color": "#000000",
+   "dist": 5,
+   "on": false,
+   "op": 60
+  },
+  "size": 108,
+  "stroke": {
+   "color": "#000000",
+   "join": "round",
+   "on": true,
+   "width": 10
+  },
+  "tracking": 10,
+  "underline": false,
+  "valign": "middle",
+  "weight": 400
+ },
+ "title": "Red Wipe (my version)",
+ "updatedAt": "2026-10-23T14:43:46.511Z",
+ "updatedBy": null,
+ "version": 1
+}
