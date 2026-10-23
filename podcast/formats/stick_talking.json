@@ -1,0 +1,75 @@
+{
+ "_about": "Stick-figure talking-head ad (example, 2026-10-06). Hook = separate clip, body = Omni base + extends. Used by stick/plan.py; rules in .claude/skills/stickman-talking/SKILL.md",
+ "engine": "omni",
+ "resolution": "720p",
+ "usd_per_s": 0.1,
+ "wps": 3.5,
+ "base_max_s": 10,
+ "extend_max_s": 10,
+ "voices": {
+  "boy": "Pleasant, warm, friendly adult male voice (about 30 years old, NOT a child's voice), smooth and likable, like a popular friendly podcast host talking to a friend. Never harsh, never shouting, never aggressive, never sarcastic.",
+  "girl": "Pleasant, warm, friendly adult female voice (about 28 years old, NOT a child's or teen's voice), smooth and likable, like a popular friendly podcast host talking to a friend. Never harsh, never shrill, never sarcastic.",
+  "expert": "Pleasant, warm, confident mature male voice (about 45 years old), calm authority of a friendly relationship expert, likable and engaging. Never harsh, never preachy, never sarcastic."
+ },
+ "prompts": {
+  "hook": "lipsync to '{TEXT}'\n\n{CHARACTER}\n\n{CONTEXT}\n\nstrictly as pasted, do not change the text. {WHO_CAP} starts speaking on the very first frame at a lively, upbeat pace: one flowing delivery, only a short 0.3-second breath between sentences, no other pauses, and the last word is finished before the clip ends.\n\nVoice: {VOICE}\n\n{DELIVERY}\n\nFace: bright, interested and expressive, but NOT smiling while talking - the energy is in the eyes, the raised eyebrows, small head tilts and the voice; the mouth only shapes the words. The eyebrows stay lifted and softly arched upward the whole time, also on the confident answer - never slanted down toward the nose, never drawn together. No grin, no wide or toothy smile. A short light smile may appear only after the last word. Never sad, never frowning, never angry.\n\n{BODY_HOOK}\n\nFlat 2D cartoon animation: keep the exact drawing style, character design, outlines, colors and plain light-grey background of the first frame. Clear mouth movement in sync with the words. Static camera, no scene change, no zoom, no text, no subtitles.\n\nonly {WHO} voice, no music, no other voice or sounds.",
+  "base": "{HOOK_TEMPLATE}",
+  "extend": "lipsync to '{TEXT}'\n\nstrictly as pasted: {WHO_PRON} says only these exact words, every word exactly once, fluently, no repeats, nothing else.\n\nSame voice and same lively, upbeat pace as before: only a short 0.3-second breath between sentences, the last word finished before the clip ends. Tone: {MOOD}\n\nFace: bright and expressive, the mouth only shapes the words; eyebrows lifted and softly arched, never slanted down toward the nose; no grin, a light smile only on happy words.\n\n{BODY_SHORT}\n\n{EXT_CONTEXT}Same flat 2D cartoon style and plain background, static camera, no text, no subtitles. only {WHO} voice, no other voice or sounds."
+ },
+ "mood_line": "Tone: {MOOD} Lively, natural facial expressions that follow the meaning of the words; smile only where the words are happy, otherwise an engaged, expressive face. Eyebrows lifted and softly arched, never slanted down toward the nose.\n\n",
+ "_moods": "projects/<id>/moods.json {step: mood} - one short tone per piece by its meaning (review: livelier, relevant emotions, no constant grin). Never gestures, never quoted phrases.",
+ "characters": {
+  "boy": "The character is an adult man (about 30) drawn in a simple minimalist cartoon style.",
+  "girl": "The character is an adult woman (about 28) drawn in a simple minimalist cartoon style.",
+  "expert": "The character is an adult man (about 45) drawn in a simple minimalist cartoon style."
+ },
+ "_characters": "Always in every prompt: a child-looking character + relationship words ('partner', 'obsessed') got the girl hook moderation-blocked (2026-10-06).",
+ "max_extend_depth": 4,
+ "sharpness_fail": 0.45,
+ "sharpness_warn": 0.55,
+ "_sharpness": "check.py: new part / chain base Laplacian sharpness. Boy calibration: e1 0.59, e2 0.57, e3 0.48, e4 0.41 (e4 visibly mushy). User complained only at 0.41 (boy run 1 e4); 0.48 had no complaint -> fail < 0.45. Re-running an extend does not fix blur (it is depth-driven).",
+ "_extend": "girl: extends with only the adult-character line were moderation-blocked twice (relationship words + child-looking figure); the base prompts (with the adult voice line) passed -> extends carry the voice line too.",
+ "extend_join_s": 0.5,
+ "context": "Context: a light, everyday conversation - an adult {GENDER} casually talking about dating and texting with {POSS} adult partner and a self-help app {PRON} uses.",
+ "_context": "girl c1_e1 was moderation-blocked twice (relationship words + child-looking figure) until this line was added.",
+ "_hook": "v2 2026-10-06 after the user's verdict on the girl run: face = energy in eyes/brows/voice/gestures, mouth only shapes words, smile only after the last word; body moving all the time (generic gestures, never tied to a phrase); 0.3 s breath between sentences.",
+ "_brows": "hook v2 men: 'confident excitement' -> brows slanted down = angry ; girl was fine. Brows-up line in hook and mood line.",
+ "body_hook_default": "Body: moving all the time like an engaging storyteller - lively hand gestures that illustrate the words (an open palm toward the viewer, a hand to the chest, a small explaining gesture), shifting weight, a slight lean toward the viewer on the answer. No pointing finger, no big cheerful shrugs.",
+ "body_hook": {
+  "expert": "Body: moving all the time, every movement meaningful like a relationship expert explaining on camera - during the question a questioning open-palm gesture toward the viewer with a slight head tilt; during the answer calm, purposeful explaining gestures: both hands shaping an idea in front of the chest, palms up, a measured nod. Eyes stay open and friendly. No winking, no squinting, no hand on the hip, no fidgeting, no random arm swings, no pointing finger."
+ },
+ "_body_hook": "expert hook3: generic 'storyteller' body line -> winks, hand on hip, random moves = 'irrelevant and strange'. Per-character body lines with movements tied to the MEANING of each sentence (never quoting phrases) + banned random moves; keep the amount of movement.",
+ "delivery_hook": "Delivery: the first sentence is an intriguing question with a clear rising question intonation, curious and hooking. The second sentence is the answer, said with confident excitement, like revealing something that really works.",
+ "delivery_body": "Delivery: lively, expressive storytelling to a friend; the tone follows the meaning of the words: {MOOD}",
+ "body_short_default": "Body: keeps moving with lively hand gestures that follow the meaning of the words; no pointing finger.",
+ "body_short": {
+  "expert": "Body: keeps moving with calm, purposeful explaining gestures of an expert that follow the meaning of the words; no winking, no hand on the hip, no pointing finger."
+ },
+ "art_wps": {
+  "boy": 4.2,
+  "girl": 4.2,
+  "expert": 4.3
+ },
+ "sentence_pause_s": 0.65,
+ "lead_tail_s": 0.6,
+ "_sizing": "v3 (2026-10-06, feedback): secs = words / art_wps (articulation rate measured on the approved hooks: speech time minus pauses) + 0.65 s per sentence break (Omni keeps ~0.6-0.7 s even when 0.3 is asked) + 0.6 s lead/tail + 0.5 s join for an extend. Pieces up to 10 s so the body is ONE chain (extend works fine with few iterations; same voice); sharpness is still checked per extend.",
+ "_base": "base = the APPROVED HOOK prompt with the body text and a body delivery line (same prompt, text replaced, so the voice is the same); extends = shortened version of it.",
+ "art_wps_body": {
+  "boy": 3.8,
+  "girl": 3.8,
+  "expert": 3.6
+ },
+ "sentence_pause_body_s": 0.35,
+ "_sizing_body": "boy body base (11b6dd9f): 28 words, speech 0.18-7.9 s, sentence pause 0.31 s -> storytelling articulation 3.8 wps (hook 4.2), pause 0.35 (hook 0.65). The 8 s base fit with only 0.1 s tail.",
+ "lead_tail_extend_s": 0.3,
+ "_lead_tail_extend": "boy body e1 (e3629e92): 23 words in 8 s -> 1.15 s pause + 'built around built around' (too loose). The extend's start is already covered by extend_join_s, so lead/tail for extends is 0.3, not 0.6 -> 7 s (23 words passed at 7 s three times).",
+ "ext_context": {
+  "girl": "Not spoken, background only: the character is an adult woman (about 28) in a simple cartoon style, in a light everyday talk about dating with her adult partner.\n\n"
+ },
+ "_extend_v3": "boy e1 v2 (4855576a) SPOKE THE PROMPT: 'explaining my 30 ... texting dating style ... attachment st-' - words from the character/context lines placed right under the lipsync text. Extends: no character/context lines (girl: a 'not spoken, background only' line at the end, needed for moderation), plus 'says only these exact words'.",
+ "_expert_pace": "expert base 993fbd42: 8 s for 28 words swallowed the last clause - the mature expert voice speaks ~3.4 wps with longer pauses; never copy another character's durations. Base 9 s (ffc81656) measured: 28 words, speech 0.16-8.64, pauses 0.38/0.33 -> 3.6 wps.",
+ "chain_max_s": 39,
+ "_chain_max": "Kaleido adds a few ms per extend and floors the room left: a 40 s plan clamped the last piece 6 -> 5 s (expert). Plan <= 39 s.",
+ "extend_input_max_s": 30,
+ "_extend_input_max": "Omni refuses to extend a clip longer than 30 s ('Videos longer than 30s are not supported for extension', expert e4 cc507668, no charge). A chain = pieces while the clip is <= 30 s, the last extend may take it to <= 39 s; the rest is a fresh clip from the character image with the BASE prompt (same voice line), cut at a sentence seam."
+}

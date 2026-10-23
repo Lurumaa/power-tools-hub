@@ -1,0 +1,44 @@
+{
+ "anchor": 0.5,
+ "author": null,
+ "createdAt": "2026-10-22T17:55:42.000Z",
+ "credit": "Power Tools Hub",
+ "description": "Swiss slice push: the frame splits into tilted strips that shoot out one after another in alternating directions with motion blur, the next shot rides in behind and lands crisp.",
+ "duration": 0.5,
+ "name": "slices",
+ "params": [
+  {
+   "label": "Strips",
+   "max": 12,
+   "min": 3,
+   "name": "count",
+   "value": 6
+  },
+  {
+   "label": "Angle",
+   "max": 30,
+   "min": -30,
+   "name": "angle",
+   "value": 10
+  },
+  {
+   "label": "Stagger",
+   "max": 0.7,
+   "min": 0,
+   "name": "stagger",
+   "value": 0.3
+  },
+  {
+   "label": "Motion blur",
+   "max": 2,
+   "min": 0,
+   "name": "blur",
+   "value": 1
+  }
+ ],
+ "shader": "// Slices - Swiss motion-design strip push.\n// The frame is cut into N parallel strips (the strip MASK is tilted by `angle`). Every strip is a\n// rigid tape [B][A] that slides along screen X by exactly the frame width: every pixel row moves\n// the same amount, so B's real vertical border leads, nothing is sampled outside the picture and\n// there is no shear / edge creep at any angle.\n// A accelerates out (strong ease-in), B rides in right behind it and lands with a crisp ease-out\n// plus a small scale settle. Strips start one after another (`stagger`, top first) and alternate\n// direction. Motion blur = temporal supersampling (jittered shutter taps, one texture tap each);\n// strip edges are anti-aliased by jittering the strip lookup inside the pixel footprint.\n\nconst int SL_TAPS = 32;\n\n// asymmetric power in-out, C1 at the midpoint: short wind-up, fast middle, crisp landing\nfloat slEase(float x) {\n    x = clamp(x, 0.0, 1.0);\n    const float k1 = 3.0;            // ease-in power\n    const float k2 = 4.0;            // ease-out power\n    const float a = k2 / (k1 + k2);  // value at x = 0.5 (keeps the speed continuous)\n    if (x < 0.5) return a * pow(2.0 * x, k1);\n    return 1.0 - (1.0 - a) * pow(2.0 - 2.0 * x, k2);\n}\n\nvec2 slUv(vec2 P) { return vec2(P.x / ratio + 0.5, P.y + 0.5); }\n\nvec4 transition(vec2 uv) {\n    float ang = radians(clamp(angle, -30.0, 30.0));\n    vec2 nd = vec2(-sin(ang), cos(ang));    // across the strips (aspect-correct space)\n    vec2 P = vec2((uv.x - 0.5) * ratio, uv.y - 0.5);\n\n    float hs = 0.5 * (ratio * abs(nd.x) + abs(nd.y));  // half extent of the frame across the strips\n    float n = max(floor(count + 0.5), 1.0);\n    float spread = clamp(stagger, 0.0, 0.75);\n    float w = 1.0 - spread;\n    float px = 1.0 / resolution.y;\n    float s = dot(P, nd);\n    // rigid tape: travel = frame width (+3 px so no sliver of the old frame survives)\n    float L = ratio + 3.0 * px;\n    float x0 = -0.5 * ratio - 1.5 * px;\n    float x1 = 0.5 * ratio + 1.5 * px;\n    float sh = max(blur, 0.0) * 0.042;                 // shutter in progress units (~180-270 deg at 30 fps)\n    sh *= clamp(min(progress, 1.0 - progress) / max(sh, 1e-4), 0.0, 1.0); // closes at both ends: exact A / B\n    const float Z = 0.07;                              // depth: A swells as it leaves, B settles from 1.07\n\n    // interleaved gradient noise, re-seeded every frame so the faint tap pattern never sits fixed on screen\n    float nz = fract(52.9829189 * fract(dot(gl_FragCoord.xy + 5.588238 * floor(time * 30.0), vec2(0.06711056, 0.00583715))));\n    float nz2 = fract(nz * 13.37 + 0.5);\n\n    vec3 acc = vec3(0.0);\n    for (int j = 0; j < SL_TAPS; j++) {\n        float fj = float(j);\n        float u = (fj + nz) / float(SL_TAPS);\n        float v = fract(fj * 0.6180339 + nz2);\n        float pj = clamp(progress + (u - 0.5) * sh, 0.0, 1.0);\n        float sj = s + (v - 0.5) * px * 1.4;\n        float idx = clamp(floor((sj / (2.0 * hs) + 0.5) * n), 0.0, n - 1.0);\n        float rank = n - 1.0 - idx;                                  // top strip leaves first\n        float st = n > 1.5 ? spread * rank / (n - 1.0) : 0.0;\n        float o = slEase((pj - st) / w);\n        float dir = mod(idx, 2.0) < 0.5 ? 1.0 : -1.0;\n        float edge = dir > 0.0 ? x0 + o * L : x1 - o * L;            // A|B joint (vertical)\n        vec3 c;\n        if ((P.x - edge) * dir > 0.0) {\n            c = getA(slUv(vec2(P.x - dir * o * L, P.y) / (1.0 + Z * o))).rgb;\n        } else {\n            c = getB(slUv(vec2(P.x + dir * (1.0 - o) * L, P.y) / (1.0 + Z * (1.0 - o)))).rgb;\n        }\n        acc += c;\n    }\n    return vec4(acc / float(SL_TAPS), 1.0);\n}\n",
+ "title": "Slices",
+ "updatedAt": "2026-10-22T17:55:42.000Z",
+ "updatedBy": null,
+ "version": 1
+}

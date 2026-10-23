@@ -1,0 +1,79 @@
+{
+ "author": null,
+ "createdAt": "2026-10-21T11:51:56.000Z",
+ "credit": "Power Tools Hub",
+ "description": "Every phrase becomes a small typographic poster: short lines of 1–3 words, each scaled to the same width, so short punchy lines come out big. Lines land as they are spoken and the stack stays centred.",
+ "engine": "motion",
+ "fx": {
+  "kind": "stack",
+  "max": 210,
+  "width": 760
+ },
+ "name": "poster-stack",
+ "place": {
+  "boxH": 360,
+  "boxW": 920,
+  "py": 1300
+ },
+ "st": {
+  "align": "center",
+  "bg": {
+   "color": "#ffffff",
+   "linkPad": false,
+   "mode": "lines",
+   "on": false,
+   "op": 100,
+   "pad": 16,
+   "padX": 22,
+   "padY": 8,
+   "radius": 14,
+   "shadow": {
+    "angle": 135,
+    "blur": 18,
+    "color": "#000000",
+    "dist": 8,
+    "on": false,
+    "op": 45
+   },
+   "target": "caption"
+  },
+  "bold": false,
+  "caps": true,
+  "fill": {
+   "color": "#ffffff",
+   "on": true
+  },
+  "font": "Inter Tight",
+  "italic": false,
+  "kar": {
+   "color": "#8d8a2e",
+   "mode": "fill",
+   "on": false,
+   "scale": 100
+  },
+  "leading": 0,
+  "shadow": {
+   "angle": 90,
+   "blur": 4,
+   "color": "#000000",
+   "dist": 5,
+   "on": false,
+   "op": 60
+  },
+  "size": 72,
+  "stroke": {
+   "color": "#000000",
+   "join": "round",
+   "on": true,
+   "width": 6
+  },
+  "tracking": -20,
+  "underline": false,
+  "valign": "middle",
+  "weight": 800
+ },
+ "title": "Poster Stack",
+ "updatedAt": "2026-10-21T12:28:36.000Z",
+ "updatedBy": null,
+ "version": 2
+}

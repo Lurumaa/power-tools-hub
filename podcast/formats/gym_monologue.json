@@ -1,0 +1,118 @@
+{
+ "name": "gym_monologue",
+ "about": "One coach talks to his own phone on a tripod in a gym (UGC vlog look), ONE camera angle for the whole video (task_976). The script is split into turns at the montage points (headline / phases / CTA): every turn is its own base clip from the same approved still (+ extends when long), so turn boundaries are jump-cuts hidden by full-screen inserts or alternating punch-ins in the edit. No other people in frame. Prompts written with he (pronoun_base he).",
+ "pronoun_base": "he",
+ "pronoun_note": "templates are written for he; gendered swaps to she for a female hero",
+ "topic_default": "men's pelvic-floor fitness",
+ "engine": "omni",
+ "resolution": "720p",
+ "usd_per_s": 0.1,
+ "image_model": "openai-sunburst",
+ "image_resolution": "2K",
+ "aspect_ratio": "9:16",
+ "language": "en",
+ "max_first": 10,
+ "max_ext": 10,
+ "min_dur": 3,
+ "max_total": 40,
+ "tail": 0.7,
+ "ext_tail": 0.5,
+ "seam_tail": 0.3,
+ "seam_pause_max": 0.7,
+ "takes": {
+  "first": 1,
+  "retry": 1,
+  "ext_first": 1,
+  "ext_retry": 1
+ },
+ "takes_note": "1 take per launch; a second one only after the first failed QA (review - two takes up front burn money)",
+ "max_launches": 4,
+ "timing": {
+  "about": "Appended to every clip prompt so base clip and extensions keep one speaking tempo (same speed across the extends). Extension timestamps count from the start of the added part. Written with he (pronoun_base he).",
+  "base": "Timing: he starts speaking at about {start} s and says the last word at about {end} s, at one steady natural pace{after}.",
+  "ext": "Timing: he continues right away and says the last word at about {end} s, at the same steady pace as before{after}.",
+  "after_seam": ", then a short breath",
+  "after_last": ", then he stays silent with his mouth closed, looking into the lens"
+ },
+ "retry_lines": [
+  "",
+  "Pronounce every word clearly at a natural pace, each word exactly once.",
+  "Calm clear delivery, no stutter, no repeated words, no filler sounds.",
+  "Exact words only, nothing added before or after, no background noise.",
+  "Speak at a steady natural tempo and finish the full sentence before the clip ends."
+ ],
+ "qa": {
+  "whisper_model": "large-v3",
+  "fuzzy": 0.75,
+  "max_minor": 2,
+  "noise_db": -42,
+  "speech_db": -38,
+  "long_pause": 1.2,
+  "scene_th": 0.22,
+  "intro_cut_rel": [
+   0.5,
+   2.5
+  ],
+  "seam_max": 1.2,
+  "seam_tail_max": 1.6,
+  "lead_penalty": 0.5,
+  "w2v_missing": 0.35,
+  "mid_pause": 0.75,
+  "mid_pause_warn": 0.55,
+  "question_lead_ok": 1.8,
+  "question_lead_min": 1.0,
+  "panel_min_motion": 1.0,
+  "panel_band": [
+   0.25,
+   0.62
+  ],
+  "panel_cols": 4,
+  "panel_hero_col": 1,
+  "bg_change": 12,
+  "loud_tol": 1.5
+ },
+ "image_rules": {
+  "about": "Appended to EVERY image prompt (wide shots, close-ups, edits). User feedback 2026-10-05: faces looked like plastic AI renders with no real-world flaws, people were not charismatic and had off-putting emotions, close-ups had different shot sizes. Never use the words photorealistic / cinematic / 8k / ultra-detailed / beautiful - they trigger the glossy AI look. 2026-10-06 (task_1719): the user rejected 'the averaged AI NPC face' and 'faded' colour (caused by 'slightly muted colour' + 'video softness') - cast specific, characterful people and keep real contrast; tone and location must follow the script topic. 2026-10-09 (task_2004_4): a list of skin flaws (redness, under-eye shadows, moles, 'not a model') made heroes '...' - the bar is the user's attractive, trustworthy reference; a new hero = recreate the approved reference frame (camera, light, grade, calm half-smile) with a different man described.",
+  "realism": "It must look like a real frame grab from a professionally filmed podcast video, not an AI image: shot on a Sony FX3 with a 35mm lens at f/2.8, ISO 2000, natural fine sensor grain, crisp broadcast-camera detail with a little motion blur only on moving hands, rich true-to-life colour with real contrast and deep blacks (never faded, washed-out or desaturated), no HDR, no beauty filter, no retouching. Real skin texture with visible pores and natural fine lines, a little natural shine from the stage lights, flyaway hairs - real attractive people filmed on stage, never plastic.",
+  "charisma": "Everyone is charismatic and likable, the kind of people viewers trust on a top podcast: warm, alive eyes, genuine micro-expressions, relaxed, open, confident body language. Each person's expression is exactly as described for them.",
+  "background": "People who are not speaking behave naturally and independently, as in real footage: not everyone looks at the speaker (someone looks at notes, at the audience or ahead), calm attentive faces, no grins, no posed reactions, no all-eyes-on-the-speaker staging. Match the tone of the setting and the topic: a serious conference or a vulnerable personal topic means sincere, calm faces.",
+  "avoid": "Avoid: plastic or waxy skin, airbrushed smooth faces, glossy CGI look, perfect symmetry, doll eyes, oversharpening, HDR glow, stock-photo poses, frowning, glaring, side-eye, smirking, sneering, bored, cold, stern or hostile expressions, dead eyes, extra or fused fingers, text, logos. Also avoid the generic AI stock face: the averaged handsome model look (tousled greying hair, neat beard, symmetrical friendly face, stock smile) - every person needs specific, characterful, non-default features like a real individual."
+ },
+ "wps": {
+  "hero": 2.7,
+  "default": 2.8
+ },
+ "lead_in": {
+  "intro": 0.0,
+  "answer": 0.5
+ },
+ "intro_first": "angle_1_front",
+ "timeline": {
+  "fade": 0.04,
+  "gap": 0.3,
+  "cut_lead": 0.0,
+  "listen_overlap": 0.0,
+  "preroll": 0.08,
+  "tail": 0.2,
+  "end_hold": 0.6,
+  "min_shot": 0.8,
+  "lufs": -16.0,
+  "lufs_note": "timeline bakes a gain into every clip copy so its speech hits this loudness (true-peak limited); audit fails a turn > qa.loud_tol LU off the median (review: clips did not match in loudness)"
+ },
+ "prompts": {
+  "intro": "lipsync to '{text}'\n\n\nhe takes a short breath, then starts speaking. A fitness coach films himself on a phone on a tripod in his gym: static camera, no scene change, no camera cut. He talks with energy and conviction, like a coach recruiting people for a challenge, and his hands move on his key words: open palms toward the lens, counting on his fingers, a short firm chop of the hand, a fist pressed into his open palm; small nods and leans toward the lens between sentences, at natural real-time speed. The gym behind him stays exactly as in the first frame. {voice}\n\nonly his voice, no other voices or sounds, strictly as pasted, do not change the text. No subtitles, no captions, no on-screen text",
+  "answer": "lipsync to '{text}'\n\n\nhe takes a short breath, then starts speaking. A fitness coach films himself on a phone on a tripod in his gym: static camera, no scene change, no camera cut. He talks with energy and conviction, like a coach recruiting people for a challenge, and his hands move on his key words: open palms toward the lens, counting on his fingers, a short firm chop of the hand, a fist pressed into his open palm; small nods and leans toward the lens between sentences, at natural real-time speed. The gym behind him stays exactly as in the first frame. {voice}\n\nonly his voice, no other voices or sounds, strictly as pasted, do not change the text. No subtitles, no captions, no on-screen text",
+  "ext": "he keeps talking, lipsync to '{text}'\n\n\nsame shot, static camera, no scene change. His hands keep moving on his key words: open palms toward the lens, counting on his fingers, a short chop of the hand; small nods between sentences, at natural real-time speed. The gym behind him stays exactly as in the first frame. {voice}\n\nonly his voice, no other voices or sounds, strictly as pasted, do not change the text. No subtitles, no captions, no on-screen text"
+ },
+ "crowd_note": "nobody else in frame",
+ "crowd": "",
+ "angle_common": "",
+ "angles_note": "one angle: the approved still is given in tz frames as angle_1_front",
+ "angles": {
+  "angle_1_front": {
+   "crowd": "",
+   "angle": "the given frame"
+  }
+ },
+ "wps_note": "energetic coach; replace with the measured pace (resplit) after the first take"
+}

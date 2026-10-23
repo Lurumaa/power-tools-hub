@@ -1,0 +1,82 @@
+{
+ "author": null,
+ "createdAt": "2026-10-21T11:19:56.000Z",
+ "credit": "Power Tools Hub",
+ "description": "A bold grotesk where the positive and key words of each sentence (benefits, results, numbers with their unit) switch to a heavy yellow italic serif, picked automatically. Words rise in as they are spoken.",
+ "engine": "motion",
+ "fx": {
+  "color": "#ffe14a",
+  "font": "Fraunces",
+  "italic": true,
+  "kind": "accent",
+  "scale": 108,
+  "weight": 800
+ },
+ "name": "serif-accent",
+ "place": {
+  "boxH": 360,
+  "boxW": 920,
+  "py": 1300
+ },
+ "st": {
+  "align": "center",
+  "bg": {
+   "color": "#ffffff",
+   "linkPad": false,
+   "mode": "lines",
+   "on": false,
+   "op": 100,
+   "pad": 16,
+   "padX": 22,
+   "padY": 8,
+   "radius": 14,
+   "shadow": {
+    "angle": 135,
+    "blur": 18,
+    "color": "#000000",
+    "dist": 8,
+    "on": false,
+    "op": 45
+   },
+   "target": "caption"
+  },
+  "bold": false,
+  "caps": false,
+  "fill": {
+   "color": "#ffffff",
+   "on": true
+  },
+  "font": "Geist",
+  "italic": false,
+  "kar": {
+   "color": "#8d8a2e",
+   "mode": "fill",
+   "on": false,
+   "scale": 100
+  },
+  "leading": 0,
+  "shadow": {
+   "angle": 90,
+   "blur": 4,
+   "color": "#000000",
+   "dist": 5,
+   "on": false,
+   "op": 60
+  },
+  "size": 60,
+  "stroke": {
+   "color": "#000000",
+   "join": "round",
+   "on": true,
+   "width": 7
+  },
+  "tracking": -10,
+  "underline": false,
+  "valign": "middle",
+  "weight": 700
+ },
+ "title": "Serif Accent",
+ "updatedAt": "2026-10-21T12:12:13.000Z",
+ "updatedBy": null,
+ "version": 3
+}

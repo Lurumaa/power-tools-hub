@@ -1,0 +1,51 @@
+{
+ "anchor": 0.5,
+ "author": null,
+ "createdAt": "2026-10-22T21:29:41.000Z",
+ "credit": "Power Tools Hub",
+ "description": "Hard handheld camera shake on one smooth, continuous path (plays as smooth at 30 as at 60 fps): A starts calm and swings harder and harder into the cut, every swing in a new direction, with growing motion blur and a little roll; the cut hides inside the fastest blurred swing, then B swings out and settles dead still and sharp.",
+ "duration": 0.45,
+ "name": "shake",
+ "params": [
+  {
+   "label": "Intensity",
+   "max": 1.5,
+   "min": 0.3,
+   "name": "intensity",
+   "value": 1
+  },
+  {
+   "label": "Hits (jolts)",
+   "max": 6,
+   "min": 2,
+   "name": "hits",
+   "value": 5
+  },
+  {
+   "label": "Motion blur",
+   "max": 1.2,
+   "min": 0.5,
+   "name": "blur",
+   "value": 1
+  },
+  {
+   "label": "Rotation (deg)",
+   "max": 2.5,
+   "min": 0,
+   "name": "rotation",
+   "value": 1.5
+  },
+  {
+   "label": "RGB split",
+   "max": 1,
+   "min": 0,
+   "name": "chroma",
+   "value": 1
+  }
+ ],
+ "shader": "// Shake - premium camera-shake transition (Mister Horse style), v2: one continuous handheld camera path, no frame\n// grid - it plays equally smooth at 24, 30 or 60 fps.\n//  A  : starts calm while the cover zoom comes in, then swings harder and harder into the cut, every swing in a new\n//       direction (the shake axis turns ~55 deg per swing).\n//  CUT: sits on the fastest swing (the camera crosses the centre at full speed), so A leaves as a streak and B\n//       arrives as one; the shutter never straddles the cut.\n//  B  : keeps swinging with decaying amplitude, then settles dead still and sharp (exact from SK_REST).\n// Path: a sine at 0.62 * hits cycles per transition (5 hits -> 3.1 cycles, ~7 Hz at 0.45 s) + 15 % at 1.5x, along an\n// axis that turns with time, under an envelope 0 -> 1 (cut) -> 0 with zero slope at both ends; roll on its own slower sine.\n// Cover zoom 1.15 at the peak (intensity 1, rotation 1.5; capped at 1.18, the roll gives way first); every offset /\n// roll is computed inside the margin that zoom and the actual roll leave, so no edge (mirrored or black) ever shows.\n// Motion blur: 48 taps, each a real moment of the camera path (offset + roll + zoom) inside a virtual shutter, in\n// linear light (gamma 2), tapered, with a per-pixel static comb offset (no flicker). The shutter is shortened wherever\n// the fastest screen corner would streak further than 140 px of a 1920 px long side (<= 3 px per tap): no stepping.\n// RGB split: R / B weighted toward the two ends of the shutter, only around the cut (no extra fetches).\n// params: intensity (amplitude + cover zoom), hits (swings across the transition, 2-6), blur (shutter, 0.5-1.2),\n//         rotation (deg of roll, 0-2.5), chroma (RGB split on the cut)\n\nconst float SK_CUT = 0.5;        // = preset anchor\nconst float SK_REST = 0.885;     // camera dead still from here (end of the zoom-out)\nconst float SK_F = 0.0769231;    // one 30 fps frame at 0.45 s in progress units (the shutter's base length)\nconst float SK_RATE = 0.62;      // swing cycles per transition per hit (5 hits -> 3.1 cycles, ~7 Hz at 0.45 s)\nconst float SK_SW = 0.06;        // width of the slow-down around the cut (progress)\nconst float SK_SLOW = 0.45;      // how much the phase slows on the cut (0.55 of the swing rate there)\nconst float SK_JOLT = 0.62;      // swing amplitude away from the cut, relative to the cut swing\nconst float SK_ZIN = 0.26;       // cover zoom-in done\nconst float SK_ZOUT = 0.54;      // cover zoom-out starts\nconst float SK_ZK = 0.103;       // cover zoom per unit of intensity\nconst float SK_ZMAX = 1.18;      // cover zoom cap\nconst float SK_ZMIN = 0.15;      // cover zoom per unit of intensity at least, whatever the rotation\nconst float SK_FILL = 0.95;      // share of the cover margin a full pose uses\nconst float SK_LMAX = 0.0729167; // longest corner streak: 140 px of a 1920 px long side\nconst int SK_TAPS = 48;\nconst int SK_PROBES = 9;\n\nfloat skIgn(vec2 p) {\n  return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715))));\n}\n\n// shake envelope: 0 -> 1 -> 0, zero slope at both ends\nfloat skEnv(float t) {\n  return t < SK_CUT ? smoothstep(0.0, SK_ZIN, t) : 1.0 - smoothstep(SK_ZOUT, SK_REST, t);\n}\n\n// swing envelope: grows into the cut, decays after it (zero slope at both ends); the cut swing gets the full margin\nfloat skAmp(float t) {\n  float tau = (t - SK_CUT) / SK_SW;\n  float e = t < SK_CUT ? smoothstep(0.0, 0.47, t) : 1.0 - smoothstep(0.53, SK_REST, t);\n  return e * (SK_JOLT + (1.0 - SK_JOLT) * exp(-tau * tau));\n}\n\n// the shake itself, in units of the cover margin: xy = position, z = roll share. Zero crossing on the cut. The phase\n// runs slower around the cut (SK_SLOW of the swing rate), so the cut swing is one long full-speed sweep (~0.2 of the\n// transition) between quicker swings; the swing axis turns with time, so every swing goes in a new direction.\nvec3 skSig(float t, float hitsN) {\n  float tau = t - SK_CUT;\n  float w = 6.2831853 * SK_RATE * hitsN * (tau - SK_SLOW * SK_SW * tanh(tau / SK_SW));\n  float al = -0.85 + 6.0 * tau;\n  float a = 0.85 * sin(w) + 0.15 * sin(1.5 * w);\n  return vec3(a * cos(al), a * sin(al), sin(0.8 * w + 0.6)) * skAmp(t);\n}\n\n// camera at progress t -> (offset xy in height units, roll rad, zoom)\nvec4 skCam(float t, float hitsN) {\n  vec3 acc = skSig(t, hitsN);\n  float E = skEnv(t);\n  float hx = 0.5 * ratio;\n  float kr = max(hx / 0.5, 0.5 / hx);\n  float zi = SK_ZK * clamp(intensity, 0.0, 1.5);\n  float rr = min(sin(radians(clamp(rotation, 0.0, 2.5))) * kr, max(SK_ZMAX - 1.0 - zi, 0.0));\n  float zoom = 1.0 + E * min(max(zi + rr, SK_ZMIN * clamp(intensity, 0.0, 1.5)), SK_ZMAX - 1.0);\n  float th = asin(clamp(E * rr / kr, 0.0, 1.0)) * acc.z;\n  float c = cos(th);\n  float s = abs(sin(th));\n  vec2 m = max(vec2(hx - (hx * c + 0.5 * s) / zoom, 0.5 - (hx * s + 0.5 * c) / zoom), vec2(0.0));\n  return vec4(acc.xy * m * SK_FILL, th, zoom);\n}\n\nvec2 skMap(vec4 c, vec2 q0) {\n  float cr = cos(c.z);\n  float sr = sin(c.z);\n  return vec2(cr * q0.x - sr * q0.y, sr * q0.x + cr * q0.y) / c.w + c.xy;\n}\n\nvec3 skTex(bool onB, vec2 st) {\n  vec3 c = vec3(0.0);\n  if (onB) { c = getB(st).rgb; } else { c = getA(st).rgb; }\n  return c;\n}\n\nvec4 skShake(vec2 uv) {\n  float n = clamp(hits, 2.0, 6.0);\n  vec2 asp = vec2(ratio, 1.0);\n  vec2 q0 = (uv - 0.5) * asp;\n  float dc = (progress - SK_CUT) / 0.09;\n  float bc = exp(-dc * dc);                       // closeness to the cut\n  // shutter ~ one frame (1.6 frames on the cut jolt), closed at the very ends\n  float W = SK_F * clamp(blur, 0.0, 1.2) * (1.0 + 0.6 * bc);\n  W *= clamp(progress * 8.0, 0.0, 1.0) * clamp((1.0 - progress) * 8.0, 0.0, 1.0);\n  // the shutter never straddles the cut (a hard cut between a pure A streak and a pure B streak)\n  bool onB = progress >= SK_CUT;\n  float t0 = onB ? max(progress - 0.5 * W, SK_CUT) : progress - 0.5 * W;\n  float t1 = onB ? progress + 0.5 * W : min(progress + 0.5 * W, SK_CUT - 1e-4);\n  t0 = max(t0, 0.0);\n  t1 = min(t1, 1.0);\n  // streak cap: the fastest probe step of the 4 screen corners bounds the streak; shrink the shutter around progress\n  vec2 cq = 0.5 * asp;\n  vec4 cp = skCam(t0, n);\n  vec2 p0 = skMap(cp, cq);\n  vec2 p1 = skMap(cp, vec2(-cq.x, cq.y));\n  vec2 p2 = skMap(cp, -cq);\n  vec2 p3 = skMap(cp, vec2(cq.x, -cq.y));\n  float vmax = 0.0;\n  for (int i = 1; i < SK_PROBES; i++) {\n    vec4 c = skCam(mix(t0, t1, float(i) / float(SK_PROBES - 1)), n);\n    vec2 r0 = skMap(c, cq);\n    vec2 r1 = skMap(c, vec2(-cq.x, cq.y));\n    vec2 r2 = skMap(c, -cq);\n    vec2 r3 = skMap(c, vec2(cq.x, -cq.y));\n    vmax = max(vmax, max(max(length(r0 - p0), length(r1 - p1)), max(length(r2 - p2), length(r3 - p3))));\n    p0 = r0; p1 = r1; p2 = r2; p3 = r3;\n  }\n  float L = vmax * float(SK_PROBES - 1) * skCam(0.5 * (t0 + t1), n).w;\n  float lm = SK_LMAX * max(ratio, 1.0);\n  if (L > lm) {\n    float sc = lm / L;\n    t0 = progress - (progress - t0) * sc;\n    t1 = progress + (t1 - progress) * sc;\n  }\n  float dk = (progress - SK_CUT) / 0.075;\n  float kc = 0.92 * clamp(chroma, 0.0, 1.0) * exp(-dk * dk);  // R early / B late in the shutter, around the cut only\n  float jit = skIgn(floor(uv * resolution));\n  vec3 acc = vec3(0.0);\n  vec3 wsum = vec3(0.0);\n  for (int i = 0; i < SK_TAPS; i++) {\n    float f = (float(i) + jit) / float(SK_TAPS);\n    vec4 c = skCam(clamp(mix(t0, t1, f), 0.0, 1.0), n);\n    vec3 s = skTex(onB, skMap(c, q0) / asp + 0.5);\n    float g = 2.0 * f - 1.0;\n    vec3 w = (1.0 - g * g) * vec3(1.0 + kc * g, 1.0, 1.0 - kc * g);\n    acc += s * s * w;                             // linear light (gamma 2)\n    wsum += w;\n  }\n  return vec4(sqrt(acc / wsum), 1.0);\n}\n\nvec4 transition(vec2 uv) {\n  vec4 res = vec4(0.0);\n  if (progress <= 0.0) {\n    res = getA(uv);\n  } else if (progress >= 1.0) {\n    res = getB(uv);\n  } else {\n    res = skShake(uv);\n  }\n  return res;\n}\n",
+ "title": "Shake",
+ "updatedAt": "2026-10-23T12:00:00.000Z",
+ "updatedBy": null,
+ "version": 2
+}
