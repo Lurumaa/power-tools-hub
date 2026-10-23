@@ -305,6 +305,8 @@ select{height:30px;border-radius:var(--r);border:1px solid var(--line);backgroun
 .views button:focus-visible{outline:2px solid var(--ring)}
 .views button[aria-selected="true"]{background:var(--chip);color:var(--fg)}
 .views .n{font-family:var(--font-mono);font-size:11px;color:var(--subtle);font-variant-numeric:tabular-nums}
+.views{overflow-x:auto;scrollbar-width:none}.views::-webkit-scrollbar{display:none}.views button{flex:none}
+@media (max-width:560px){ .views button{padding:7px 9px;gap:5px} .views .n{display:none} }
 .grid.sgrid{grid-template-columns:repeat(5,minmax(0,1fr));gap:18px}
 .bglabel{font-size:13px;color:var(--subtle)}
 .bgpick{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}
@@ -399,6 +401,7 @@ input[type=color]{width:44px;height:28px;border:1px solid var(--line);border-rad
 .mright{justify-self:end;white-space:nowrap} .mright.ok{background:var(--ok-soft);color:var(--ok)} .mright.warn{background:var(--warn-soft);color:var(--warn)}
 .mplayer{display:flex;flex-direction:column;gap:10px}
 @media (max-width:1000px){ .mrow{grid-template-columns:40px minmax(0,1fr) 70px 112px;gap:10px} .mrow .mwavebox{grid-column:1/-1;order:9} .mrow .mtags,.mrow .mdur{display:none} }
+@media (max-width:560px){ .mrow{grid-template-columns:40px minmax(0,1fr) auto} .mrow>:last-child{grid-column:2/-1;justify-self:start} }
 </style>
 
 <header class="top">
@@ -2514,8 +2517,8 @@ The bar is a premium template that beats paid caption tools, not a recoloured ka
 motion (how the highlight travels, how phrases arrive and leave) and build it with care. Before answering, walk through the
 clip in your head at several moments - a phrase arriving, a word change, a jump to the second line, a phrase leaving - and
 make each of them look finished. If you can run code, render frames and look at them; iterate until every moment works.
-The person pasting it will press Apply, watch the preview on dark and light backdrops and in each format, and come back to
-you with what to fix.
+The person pasting it will press Apply, watch the preview on dark and light backdrops (and on a frame of their own), and
+come back to you with what to fix.
 
 A WORKING EXAMPLE (Lava Wave: a molten blob flows from word to word and drips; make yours from scratch for the request):
 ` + JSON.stringify({ name: CANVAS_EXAMPLE.name, title: CANVAS_EXAMPLE.title, engine: 'canvas', runtime: CANVAS_RUNTIME,
@@ -5068,19 +5071,19 @@ async function boot() {
   const fail = err => { S.store = 'error'; S.storeErr = err && err.code; S.loaded = true; render(); };
   watchKind(db, 'library', 'skills', list => {
     S.skills = list;
-    if (S.view === 'skills' || S.openKind === 'skill' || !S.loaded) after(); else { renderViews(); if (D.open) renderAddFoot(); }
+    if (S.view === 'skills' || S.openKind === 'skill' || !S.loaded) after(); else { renderViews(); if (D.open) renderAddFoot(); maybeOpenHash(); }
   }, fail);
   watchKind(db, 'sublib', 'subs', list => {
     S.subs = list;
-    if (S.view === 'subs' || S.openKind === 'sub') after(); else { renderViews(); if (D.open) renderAddFoot(); }
+    if (S.view === 'subs' || S.openKind === 'sub') after(); else { renderViews(); if (D.open) renderAddFoot(); maybeOpenHash(); }
   });
   watchKind(db, 'musiclib', 'music', list => {
     S.music = list;
-    if (S.view === 'music' || S.openKind === 'music') after(); else { renderViews(); if (D.open) renderAddFoot(); }
+    if (S.view === 'music' || S.openKind === 'music') after(); else { renderViews(); if (D.open) renderAddFoot(); maybeOpenHash(); }
   });
   watchKind(db, 'translib', 'trans', list => {
     S.trans = list;
-    if (S.view === 'trans' || S.openKind === 'trans') after(); else { renderViews(); if (D.open) renderAddFoot(); }
+    if (S.view === 'trans' || S.openKind === 'trans') after(); else { renderViews(); if (D.open) renderAddFoot(); maybeOpenHash(); }
   });
   if (D.open) renderAdd();
 }

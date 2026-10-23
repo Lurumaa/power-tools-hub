@@ -22,13 +22,18 @@
 |---|---|
 | `skillhub/index.html` | Увесь хаб: інтерфейс, прев'ю, редактори, перевірки, робота з базою |
 | `skillhub/CANVAS_SUBS_SPEC.md` | Специфікація для розробників: формат canvas-пресета, рантайм `s`, пісочниця, перевірки, експорт |
-| `skillhub/CANVAS_TEMPLATE.md`, `SUBS_TEMPLATE.md` | Шаблони, за якими будь-який Claude пише новий стиль сабів (кнопка Copy template у хабі) |
+| `skillhub/CANVAS_TEMPLATE.md` | Шаблон, за яким будь-який Claude пише новий canvas-стиль сабів (кнопка Copy template у хабі) |
+| `skillhub/SUBS_TEMPLATE.md` | Шаблон пресета сабів на готових рушіях (вкладка JSON у хабі) |
 | `skillhub/tools/preview.py`, `build_page.js` | Локальне прев'ю canvas-пресета тим самим рантаймом, що в хабі |
 | `podcast/tools/hub_subs.py` | Рендер сабів `motion` і `canvas` у відео: код хаба кадр за кадром у headless Chromium |
 | `podcast/tools/transitions.py` | Рендер переходу у відео (moderngl, той самий GLSL) |
 | `podcast/tools/music_bed.py` | Підкладка треку під ролик: дроп на стик, музика −30 LUFS під голосом −14 |
 | `podcast/tools/word_captions.py` | Саби рушія `word` (по одному слову) |
-| `podcast/tools/karaoke_subs.py` | Саби рушія `editor`. Потрібен локальний редактор команди (у репозиторій не входить) |
+| `podcast/tools/karaoke_subs.py` | Саби рушія `editor`: шар сабів для локального редактора; потрібні проєкт `pod.py` і ключ Groq (`~/.config/groq_key`) |
+| `editor/`, `podcast/serve.js`, `podcast/render.py` | Локальний редактор команди та його рендер (через нього виходять стилі рушія `editor`) |
+| `podcast/tools/coach_*.py` | Саби рушія `coach` (маркер під словом) у монтажі коуч-формату |
+| `podcast/pod.py`, `podcast/stick/`, `podcast/formats/` | Пайплайн, на який спираються скіл `stickman-talking` і інструменти вище |
+| `docs/HANDOFF.md` | Детальний довідник для розробників: модель даних, поля, перевірки, рендер, перенесення в Kaleido |
 | `data/library/<колекція>/<name>.json` | Вивантаження бібліотеки з бази: `sublib`, `translib`, `musiclib`, `library` |
 | `data/assets/<assetId>.mp4 / .jpg` | Файли, на які посилаються документи: аудіо треків (AAC у .mp4), приклад відео та постер скіла |
 

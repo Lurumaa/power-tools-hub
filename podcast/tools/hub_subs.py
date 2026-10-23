@@ -53,8 +53,10 @@ def load_words(path, offset):
 
 
 def has_nvenc():
-    r = subprocess.run(["ffmpeg", "-hide_banner", "-encoders"], capture_output=True, text=True)
-    return "h264_nvenc" in r.stdout
+    """a real 0.2 s test encode: ffmpeg builds list h264_nvenc even on PCs without an NVIDIA GPU"""
+    r = subprocess.run(["ffmpeg", "-hide_banner", "-v", "error", "-f", "lavfi", "-i", "color=c=black:s=256x256:d=0.2",
+                        "-c:v", "h264_nvenc", "-f", "null", "-"], capture_output=True)
+    return r.returncode == 0
 
 
 def kill_tree(pid):

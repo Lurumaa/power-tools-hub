@@ -73,6 +73,26 @@ class GPU:
         return np.frombuffer(self.fbo.read(components=3), np.uint8).reshape(self.h, self.w, 3)[::-1]
 
 
+def has_nvenc():
+    """a real 0.2 s test encode: ffmpeg builds list h264_nvenc even on PCs without an NVIDIA GPU"""
+    r = subprocess.run(["ffmpeg", "-hide_banner", "-v", "error", "-f", "lavfi", "-i", "color=c=black:s=256x256:d=0.2",
+                        "-c:v", "h264_nvenc", "-f", "null", "-"], capture_output=True)
+    return r.returncode == 0
+
+
+def count_frames(path, fps, dur):
+    """frames in the video stream (nb_frames, else a packet count); the duration guess only as the last resort"""
+    out = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-count_packets', '-show_entries', 'stream=nb_frames,nb_read_packets',
+                          '-of', 'json', str(path)], capture_output=True, text=True).stdout
+    try:
+        s = json.loads(out)['streams'][0]
+        for k in ('nb_frames', 'nb_read_packets'):
+            if str(s.get(k, '')).isdigit() and int(s[k]) > 0: return int(s[k])
+    except (ValueError, KeyError, IndexError):
+        pass
+    return int(round(dur * fps))
+
+
 def probe(path):
     out = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height,r_frame_rate,nb_frames',
                           '-show_entries', 'format=duration', '-of', 'json', str(path)], capture_output=True, text=True, check=True).stdout
@@ -85,11 +105,13 @@ def probe(path):
 def frames(path, w, h):
     proc = subprocess.Popen(['ffmpeg', '-v', 'error', '-i', str(path), '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], stdout=subprocess.PIPE)
     n = w * h * 3
-    while True:
-        buf = proc.stdout.read(n)
-        if len(buf) < n: break
-        yield np.frombuffer(buf, np.uint8).reshape(h, w, 3)
-    proc.wait()
+    try:
+        while True:
+            buf = proc.stdout.read(n)
+            if len(buf) < n: break
+            yield np.frombuffer(buf, np.uint8).reshape(h, w, 3)
+    finally:                                   # done or abandoned: stop the decoder before its pipe closes
+        proc.kill(); proc.wait()
 
 
 def detect_cuts(path, fps, min_gap=0.5):
@@ -146,7 +168,7 @@ def main():
             video = Path(a.video); fps = probe(video)[2]
             cuts = detect_cuts(video, fps) if a.cuts == 'auto' else [round(float(x) * fps) for x in a.cuts.split(',') if x.strip()]
         w, h, fps, dur, has_audio = probe(video)
-        total = int(round(dur * fps))
+        total = count_frames(video, fps, dur)
         print(f"{preset.get('name')}: {len(cuts)} cut(s) at {', '.join(f'{c / fps:.2f}s' for c in cuts) or '-'}")
         D = float(preset.get('duration', 0.5)); anchor = float(preset.get('anchor', 0.5))
         wins = []
@@ -156,11 +178,14 @@ def main():
             na, nb = max(1, min(na, c - lo)), max(1, min(nb, hi - c))
             wins.append((c - na, c, c + nb))
         gpu = GPU(preset, w, h)
-        enc_v = ['-c:v', 'h264_nvenc', '-preset', 'p5', '-b:v', a.bitrate, '-maxrate', a.bitrate, '-bufsize', '10M']
+        enc_v = (['-c:v', 'h264_nvenc', '-preset', 'p5', '-b:v', a.bitrate, '-maxrate', a.bitrate, '-bufsize', '10M'] if has_nvenc()
+                 else ['-c:v', 'libx264', '-crf', '17', '-preset', 'medium'])
         def encoder(vargs):
             cmd = ['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', f'{w}x{h}', '-r', f'{fps}', '-i', '-']
-            if has_audio: cmd += ['-i', str(video), '-map', '0:v', '-map', '1:a', '-c:a', 'aac', '-b:a', '192k']
-            return subprocess.Popen(cmd + vargs + ['-pix_fmt', 'yuv420p', '-shortest', '-movflags', '+faststart', str(a.out)], stdin=subprocess.PIPE)
+            if has_audio: cmd += ['-i', str(video), '-map', '0:v', '-map', '1:a', '-af', 'apad', '-c:a', 'aac', '-b:a', '192k']
+            # the audio is padded / trimmed to the picture: the output has exactly `total` frames
+            return subprocess.Popen(cmd + vargs + ['-pix_fmt', 'yuv420p', '-t', f'{total / fps:.6f}', '-movflags', '+faststart', str(a.out)],
+                                    stdin=subprocess.PIPE)
         enc = encoder(enc_v)
         it = frames(video, w, h); buf = {}; wi = 0; i = 0
         def get(n):
@@ -186,9 +211,9 @@ def main():
                 n += 1
         except BrokenPipeError:
             pass
-        enc.stdin.close(); rc = enc.wait()
+        it.close(); enc.stdin.close(); rc = enc.wait()
         if rc != 0:
-            sys.exit('the encoder failed (no NVENC?) - rerun after installing NVENC drivers, or edit enc_v to libx264')
+            sys.exit(f'the encoder failed (exit {rc})')
     print('wrote', a.out)
 
 

@@ -64,8 +64,8 @@ The bar is a premium template that beats paid caption tools, not a recoloured ka
 motion (how the highlight travels, how phrases arrive and leave) and build it with care. Before answering, walk through the
 clip in your head at several moments - a phrase arriving, a word change, a jump to the second line, a phrase leaving - and
 make each of them look finished. If you can run code, render frames and look at them; iterate until every moment works.
-The person pasting it will press Apply, watch the preview on dark and light backdrops and in each format, and come back to
-you with what to fix.
+The person pasting it will press Apply, watch the preview on dark and light backdrops (and on a frame of their own), and
+come back to you with what to fix.
 
 A WORKING EXAMPLE (Lava Wave: a molten blob flows from word to word and drips; make yours from scratch for the request):
 {
