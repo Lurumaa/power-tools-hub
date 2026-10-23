@@ -5,7 +5,7 @@
 - Робочий прототип: артефакт claude.ai https://claude.ai/artifact/6A2gzYgdr9Kk1Heeu58ShH. Це одна HTML-сторінка
   (`skillhub/index.html`), дані й файли живуть у базі та сховищі артефакту.
 - Детальна специфікація canvas-сабів і переходів (формат, API `s`, пісочниця, перевірки, експорт):
-  [`skillhub/CANVAS_SUBS_SPEC.md`](../skillhub/CANVAS_SUBS_SPEC.md) (російською).
+  [`skillhub/CANVAS_SUBS_SPEC.md`](../skillhub/CANVAS_SUBS_SPEC.md).
 - Вивантаження бібліотеки: `data/library/`, файли, на які вона посилається: `data/assets/` (розділ 7).
 
 ## 1. Що це і навіщо
@@ -376,7 +376,7 @@
 README.md                               короткий огляд (укр.)
 docs/HANDOFF.md                         цей документ
 skillhub/index.html                     увесь хаб, один файл (CDN: js-yaml, jszip, mp4-muxer, mp4box; шрифти Google)
-skillhub/CANVAS_SUBS_SPEC.md            специфікація canvas-сабів і переходів для розробників (рос.)
+skillhub/CANVAS_SUBS_SPEC.md            специфікація canvas-сабів і переходів для розробників
 skillhub/CANVAS_TEMPLATE.md             шаблон для Claude: новий canvas-стиль (= кнопка Copy template)
 skillhub/SUBS_TEMPLATE.md               шаблон для Claude: новий editor-стиль (st + place)
 skillhub/tools/preview.py               прототип покадрового рендера canvas:
@@ -388,7 +388,7 @@ podcast/pod.py, render.py, serve.js     конвеєр проєкту, ренд�
 podcast/formats/                        stick_talking.json (скіл stickman-talking), gym_monologue.json (coach-монтаж)
 podcast/stick/                          plan.py, check.py, lipcheck.py, timeline.py (скіл stickman-talking)
 editor/index.html                       локальний відеоредактор команди (рушій editor, таймлайни pod.py)
-editor/README.md                        короткі нотатки щодо запуску редактора без проєкту (рос.)
+editor/README.md                        короткі нотатки щодо запуску редактора без проєкту
 data/library/sublib/*.json              12 стилів сабів
 data/library/translib/*.json            10 переходів
 data/library/musiclib/*.json            12 треків
